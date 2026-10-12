@@ -1,8 +1,8 @@
 """Run the query set and write eval/report.md.
 
-    python eval/run_eval.py                 # extractive generator, dense if available
-    python eval/run_eval.py --llm claude    # needs ANTHROPIC_API_KEY
-    python eval/run_eval.py --no-dense      # force BM25-only
+    python eval/run_eval.py                         # dev: BM25 + extractive
+    python eval/run_eval.py --dense                 # + semantic search
+    python eval/run_eval.py --dense --llm claude    # + Claude (needs ANTHROPIC_API_KEY)
 
 Metrics are deliberately simple and deterministic:
   retrieval@5    an expected doc is in the top 5 retrieved (before gating)
@@ -158,14 +158,14 @@ def write_report(rows: list[dict], system: Attest, out: Path) -> None:
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--llm", choices=["extractive", "claude", "auto"], default="extractive")
-    ap.add_argument("--no-dense", action="store_true")
+    ap.add_argument("--llm", choices=["extractive", "claude"], default="extractive")
+    ap.add_argument("--dense", action="store_true", help="add semantic search")
     ap.add_argument("--verbose", "-v", action="store_true",
                     help="also print the answer (or withheld draft) for failing queries")
     ap.add_argument("--out", default=str(ROOT / "eval" / "report.md"))
     args = ap.parse_args()
-    if args.no_dense:
-        os.environ["ATTEST_DENSE"] = "0"
+    if args.dense:
+        os.environ["ATTEST_DENSE"] = "1"
     rows = run(args.llm, Path(args.out), args.verbose)
     passed = sum(r["pass"] for r in rows)
     print(f"{passed}/{len(rows)} passed -> {args.out}")

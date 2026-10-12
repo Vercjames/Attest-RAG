@@ -5,9 +5,8 @@ Why hybrid: contact-center questions mix exact terms that BM25 nails
 vs "returned item"). Reciprocal rank fusion combines the two without having
 to calibrate their score scales against each other.
 
-Dense is optional so the project runs anywhere with zero downloads. When the
-embedding model can't be loaded we log it and run lexical-only; the eval
-report records which mode produced it.
+Dense is opt-in (--dense) so the default runs anywhere with zero downloads.
+The eval report records which mode produced it.
 """
 from __future__ import annotations
 
@@ -89,13 +88,19 @@ class FastEmbedEmbedder:
 
 
 def load_default_embedder() -> Embedder | None:
-    if os.getenv("ATTEST_DENSE", "1") == "0":
+    """Dense retrieval is opt-in (ATTEST_DENSE=1, set by --dense).
+
+    When it's requested and can't load, fail loudly rather than quietly
+    running BM25-only: a silent fallback makes eval results lie about
+    which mode produced them.
+    """
+    if os.getenv("ATTEST_DENSE", "0") != "1":
         return None
     try:
         return FastEmbedEmbedder()
     except Exception as e:  # ImportError, no network, missing model files
-        log.warning("dense retrieval unavailable, running BM25 only (%s)", type(e).__name__)
-        return None
+        raise RuntimeError(f"--dense was requested but embeddings are unavailable ({type(e).__name__}: {e}). "
+                           'Install with: pip install -e ".[dev,dense]"') from e
 
 
 # ---------------------------------------------------------------- retrieval

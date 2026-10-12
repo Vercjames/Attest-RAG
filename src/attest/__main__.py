@@ -1,4 +1,4 @@
-"""python -m attest "What is the overdraft fee?" [--json] [--llm extractive|claude] [--no-dense]"""
+"""python -m attest "What is the overdraft fee?" [--json] [--dense] [--llm extractive|claude]"""
 from __future__ import annotations
 
 import argparse
@@ -7,19 +7,20 @@ import logging
 import os
 
 from .pipeline import Attest
+from .render import render
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(prog="attest", description="Ask the knowledge base a question.")
     ap.add_argument("query")
     ap.add_argument("--json", action="store_true", help="print the full Answer as JSON")
-    ap.add_argument("--llm", choices=["auto", "extractive", "claude"], default="auto",
-                    help="auto uses Claude when ANTHROPIC_API_KEY is set")
-    ap.add_argument("--no-dense", action="store_true",
-                    help="BM25 only, even if the dense extra is installed")
+    ap.add_argument("--llm", choices=["extractive", "claude"], default="extractive",
+                    help="answer generator; Claude runs only when asked for")
+    ap.add_argument("--dense", action="store_true",
+                    help='add semantic search (requires pip install -e ".[dense]")')
     args = ap.parse_args()
-    if args.no_dense:
-        os.environ["ATTEST_DENSE"] = "0"
+    if args.dense:
+        os.environ["ATTEST_DENSE"] = "1"
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
 
     try:
@@ -33,23 +34,7 @@ def main() -> None:
         print(json.dumps(ans.to_dict(), indent=2))
         return
 
-    print(f"\n{ans.status.upper()}  confidence: {ans.confidence.level}")
-    if ans.confidence.reasons:
-        print("  " + "; ".join(ans.confidence.reasons))
-    print()
-    if ans.answer:
-        print(ans.answer + "\n")
-    for label, cites in (("Sources", ans.citations), ("Related / excluded", ans.related)):
-        if cites:
-            print(f"{label}:")
-            for c in cites:
-                snippet = " ".join(c.text.split())
-                print(f"  [{c.chunk_id}] {c.heading}  ({c.path} chars {c.start}-{c.end})")
-                print(f"      \"{snippet[:160]}{'...' if len(snippet) > 160 else ''}\"")
-            print()
-    for n in ans.notices:
-        print(f"note: {n}")
-
+    print(render(ans))
 
 if __name__ == "__main__":
     main()

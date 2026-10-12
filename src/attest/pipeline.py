@@ -83,11 +83,11 @@ class Attest:
         self._fee_rows = [c for c in chunks if c.doc.doc_type == "fee_schedule"]
 
     @classmethod
-    def from_corpus(cls, root: str | Path = DEFAULT_CORPUS, llm: str = "auto",
+    def from_corpus(cls, root: str | Path = DEFAULT_CORPUS, llm: str = "extractive",
                     today: date | None = None, **kw) -> "Attest":
         chunks = chunk_documents(load_corpus(root, today))
         inst = cls(chunks, **kw)
-        if llm == "claude" or (llm == "auto" and _claude_available()):
+        if llm == "claude":   # explicit opt-in; a key in the environment alone never switches it
             inst.generator = ClaudeGenerator()
         return inst
 
@@ -234,13 +234,3 @@ def _d(v) -> date:
     except ValueError:
         return date.min
 
-
-def _claude_available() -> bool:
-    import os
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        return False
-    try:
-        import anthropic  # noqa: F401
-        return True
-    except ImportError:
-        return False
