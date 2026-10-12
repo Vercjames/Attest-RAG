@@ -132,7 +132,6 @@ class ClaudeGenerator:
         msg = self.client.messages.create(
             model=self.model,
             max_tokens=500,
-            temperature=0,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": build_user_prompt(query, context)}],
         )

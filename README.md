@@ -55,9 +55,32 @@ python -m attest "What is the overdraft fee?"   # add --json for the full struct
 python eval/run_eval.py                         # writes eval/report.md
 ```
 
-No API key is needed. With `ANTHROPIC_API_KEY` set, answers come from Claude
-(force either generator with `--llm claude` or `--llm extractive`). The
-Claude prompt is in `src/attest/generation.py`.
+### Choosing a mode
+
+With all three extras installed, the default uses everything available:
+hybrid retrieval, plus Claude if `ANTHROPIC_API_KEY` is set. Use flags to
+run a specific mode, for example to compare them:
+
+| Mode | Retrieval | Answers from | Ask | Eval |
+|---|---|---|---|---|
+| Core (`dev`) | BM25 | extractive | `python -m attest "..." --no-dense --llm extractive` | `python eval/run_eval.py --no-dense` |
+| Semantic (`dense`) | BM25 + embeddings | extractive | `python -m attest "..." --llm extractive` | `python eval/run_eval.py` |
+| Claude (`claude`) | BM25 + embeddings | Claude | `python -m attest "..." --llm claude` | `python eval/run_eval.py --llm claude` |
+
+- **Core** needs no downloads or key. It's the reproducible baseline.
+- **Semantic** adds embeddings, which match meaning rather than exact words ("bounced" vs "returned item").
+- **Claude** writes the answer from the same retrieved passages and passes the same grounding checks. Set the key first:
+
+  ```bash
+  export ANTHROPIC_API_KEY="sk-ant-..."         # macOS / Linux
+  $env:ANTHROPIC_API_KEY = "sk-ant-..."         # Windows PowerShell
+  ```
+
+  `--llm claude` fails loudly if the key or package is missing, instead of
+  falling back silently. The prompt is in `src/attest/generation.py`.
+
+The eval defaults to the extractive generator so its results are
+reproducible. Pass `--llm claude` to score Claude.
 
 ## What it returns
 

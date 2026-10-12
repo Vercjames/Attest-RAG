@@ -1,9 +1,10 @@
-"""python -m attest "What is the overdraft fee?" [--json] [--llm extractive|claude]"""
+"""python -m attest "What is the overdraft fee?" [--json] [--llm extractive|claude] [--no-dense]"""
 from __future__ import annotations
 
 import argparse
 import json
 import logging
+import os
 
 from .pipeline import Attest
 
@@ -14,7 +15,11 @@ def main() -> None:
     ap.add_argument("--json", action="store_true", help="print the full Answer as JSON")
     ap.add_argument("--llm", choices=["auto", "extractive", "claude"], default="auto",
                     help="auto uses Claude when ANTHROPIC_API_KEY is set")
+    ap.add_argument("--no-dense", action="store_true",
+                    help="BM25 only, even if the dense extra is installed")
     args = ap.parse_args()
+    if args.no_dense:
+        os.environ["ATTEST_DENSE"] = "0"
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
 
     ans = Attest.from_corpus(llm=args.llm).ask(args.query)
