@@ -72,6 +72,25 @@ one line, `Claude API error (...)`. The usual causes are no credits, an
 invalid key, or a model the account can't access. The prompt is in
 `src/attest/generation.py`.
 
+### Reading eval output
+
+The eval prints one line per query as it runs (PASS in green, FAIL in red),
+with a one-line reason for each failure, then writes the full
+`eval/report.md`. The first line shows which retrieval mode and generator
+actually ran.
+
+Add `-v` (or `--verbose`) to also print, for each failing query, the answer
+the system gave. When an answer failed grounding and was withheld, it prints
+the **withheld draft** instead, so you can see what the generator produced
+before validation stopped it.
+
+```bash
+python eval/run_eval.py --llm claude -v
+```
+
+`-v` exists only on `eval/run_eval.py`. For a single question, use
+`python -m attest "..." --json` to see the full answer structure.
+
 ## What it returns
 
 ```python
