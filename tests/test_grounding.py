@@ -85,3 +85,20 @@ def test_each_source_is_cited_once(system):
     ids = [c.chunk_id for c in ans.citations]
     assert len(ids) == len(set(ids))
     assert ans.answer.count("[fees#OD-PRM]") == 1
+
+
+class TruncatingGenerator:
+    name = "stub"
+
+    def generate(self, query, context):
+        return Draft(f"- Premier: $0 [{context[0].chunk_id}]\n- Business:",
+                     failure="response truncated (hit max_tokens=2000)")
+
+
+def test_truncated_generation_is_reported_as_such(system):
+    system.generator = TruncatingGenerator()
+    ans = system.ask("What is the overdraft fee?")
+    assert ans.status == "unverified" and ans.refusal_reason == "generation_failed"
+    assert ans.answer is None
+    assert ans.notices[-1].startswith("response truncated")
+    assert ans.withheld.endswith("Business:")

@@ -125,6 +125,13 @@ class Attest:
         draft = self.generator.generate(query, context)
         trace["generator"] = self.generator.name
         trace["draft"] = draft.text
+        if draft.failure:
+            # A cut-off or empty answer is a generation fault, not a grounding
+            # one. Report it as such so it isn't mistaken for missing citations.
+            ans = Answer(query, "unverified", None, [], Confidence("low", [draft.failure]),
+                         "generation_failed", [Citation.of(c) for c in context[:3]],
+                         notices + [draft.failure], withheld=draft.text or None)
+            return self._audit(ans, trace)
         if draft.abstained:
             ans = self._refuse(query, "model_abstained",
                                "The retrieved passages don't answer this question.", res.hits[:3])

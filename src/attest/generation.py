@@ -30,6 +30,7 @@ CITATION = re.compile(rf"\[({_ID}(?:\s*[,;]\s*{_ID})*)\]")
 class Draft:
     text: str
     abstained: bool = False
+    failure: str | None = None    # set when the generator returned unusable output
 
     @property
     def cited_ids(self) -> list[str]:
@@ -122,6 +123,9 @@ def _fee_line(c: Chunk) -> str:
 
 # ---------------------------------------------------------------- claude
 
+MAX_TOKENS = 2000
+
+
 class ClaudeGenerator:
     name = "claude"
 
@@ -135,9 +139,16 @@ class ClaudeGenerator:
             return Draft(ABSTAIN, abstained=True)
         msg = self.client.messages.create(
             model=self.model,
-            max_tokens=500,
+            # Answers are short, but recent models can spend part of the budget
+            # before writing; 500 truncated answers mid-list. Truncation is
+            # still detected below rather than trusted.
+            max_tokens=MAX_TOKENS,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": build_user_prompt(query, context)}],
         )
         text = "".join(b.text for b in msg.content if b.type == "text").strip()
+        if msg.stop_reason == "max_tokens":
+            return Draft(text, failure=f"response truncated (hit max_tokens={MAX_TOKENS})")
+        if not text:
+            return Draft(text, failure=f"empty response (stop_reason={msg.stop_reason})")
         return Draft(text, abstained=text.startswith(ABSTAIN))
