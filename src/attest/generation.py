@@ -130,6 +130,9 @@ class ClaudeGenerator:
     name = "claude"
 
     def __init__(self, model: str | None = None):
+        if not os.getenv("ANTHROPIC_API_KEY"):
+            raise RuntimeError("ANTHROPIC_API_KEY is not set in this terminal. "
+                               "See 'Claude setup' in the README.")
         import anthropic
         self.client = anthropic.Anthropic()
         self.model = model or os.getenv("ATTEST_MODEL", "claude-sonnet-5-5")
