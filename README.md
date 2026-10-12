@@ -69,15 +69,42 @@ run a specific mode, for example to compare them:
 
 - **Core** needs no downloads or key. It's the reproducible baseline.
 - **Semantic** adds embeddings, which match meaning rather than exact words ("bounced" vs "returned item").
-- **Claude** writes the answer from the same retrieved passages and passes the same grounding checks. Set the key first:
+- **Claude** writes the answer from the same retrieved passages and passes the same grounding checks.
 
-  ```bash
-  export ANTHROPIC_API_KEY="sk-ant-..."         # macOS / Linux
-  $env:ANTHROPIC_API_KEY = "sk-ant-..."         # Windows PowerShell
-  ```
+### Claude setup
 
-  `--llm claude` fails loudly if the key or package is missing, instead of
-  falling back silently. The prompt is in `src/attest/generation.py`.
+Claude mode calls the Anthropic API, which needs an
+[Anthropic Console](https://console.anthropic.com) account with **API credits**.
+A Claude.ai subscription (Pro, Max, Team) does not include API usage. Create a
+key under **API keys** in the Console, then set two environment variables:
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | yes | Your Console API key |
+| `ATTEST_MODEL` | no | Model to use (default `claude-sonnet-5-5`) |
+
+```bash
+# macOS / Linux
+export ANTHROPIC_API_KEY="sk-ant-..."
+export ATTEST_MODEL="claude-sonnet-5-5"      # optional
+
+# Windows PowerShell
+$env:ANTHROPIC_API_KEY = "sk-ant-..."
+$env:ATTEST_MODEL = "claude-sonnet-5-5"      # optional
+```
+
+These last only for the current terminal window. Check they're set before running:
+
+```bash
+echo $ANTHROPIC_API_KEY                      # macOS / Linux
+echo $env:ANTHROPIC_API_KEY                  # Windows PowerShell
+```
+
+Then run with `--llm claude`. That flag fails loudly instead of silently
+falling back to the extractive generator. API problems print as one line,
+`Claude API error (...)`. The usual causes are no credits on the account, an
+invalid key, or a model the account can't access. The prompt is in
+`src/attest/generation.py`.
 
 The eval defaults to the extractive generator so its results are
 reproducible. Pass `--llm claude` to score Claude.

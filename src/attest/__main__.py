@@ -22,7 +22,13 @@ def main() -> None:
         os.environ["ATTEST_DENSE"] = "0"
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
 
-    ans = Attest.from_corpus(llm=args.llm).ask(args.query)
+    try:
+        ans = Attest.from_corpus(llm=args.llm).ask(args.query)
+    except Exception as e:
+        # Surface provider errors (bad key, no credits, unknown model) as one line.
+        if type(e).__module__.startswith("anthropic"):
+            raise SystemExit(f"Claude API error ({type(e).__name__}): {getattr(e, 'message', e)}")
+        raise
     if args.json:
         print(json.dumps(ans.to_dict(), indent=2))
         return
