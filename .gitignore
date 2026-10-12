@@ -1,5 +1,3 @@
-Here it is with the comment headers:
-
 # Virtual environments
 .venv/
 venv/
@@ -15,6 +13,7 @@ dist/
 .pytest_cache/
 
 # Runtime audit logs (may contain redacted query traces)
+logs/
 *.jsonl
 
 # Leftover build tarball
