@@ -179,7 +179,8 @@ class Attest:
 
         for c in context[:3]:
             if c.doc.doc_type == "policy" and FEE_POINTER in c.text:
-                if row := self.retriever.best_fee_row(f"{c.heading} {query}"):
+                row = self.retriever.best_fee_row(f"{c.heading} {query}")
+                if row and row not in context:   # may already be there via retrieval
                     context.append(row)
 
         fee_names = {c.heading for c in context if c.doc.doc_type == "fee_schedule"}

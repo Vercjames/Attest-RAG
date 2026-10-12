@@ -68,3 +68,12 @@ def test_out_of_scope_is_refused_with_closest_passages(system):
     ans = system.ask("What is the APY on bitcoin savings?")
     assert ans.status == "refused" and ans.refusal_reason == "insufficient_context"
     assert ans.confidence.level == "none"
+
+
+def test_each_source_is_cited_once(system):
+    # Regression: a fee row reached both by retrieval and by following a
+    # policy's "see the Fee and Rate Schedule" pointer was cited twice.
+    ans = system.ask("What is the overdraft fee?")
+    ids = [c.chunk_id for c in ans.citations]
+    assert len(ids) == len(set(ids))
+    assert ans.answer.count("[fees#OD-PRM]") == 1
