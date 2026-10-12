@@ -10,14 +10,12 @@ corpus: 24 documents (policies, help-center FAQs, and a fee schedule) for a
 fictional company, MerchantBridge. It is written for contact-center agents,
 so answers favor exact figures with their source over fluent prose.
 
-> **Draft.** The judgment sections (what I skipped, what's next, how I used AI)
-> are being written after hands-on use. See the TODO markers.
-
 ## Run it
 
-Three modes, each building on the one before. Without flags, `attest` uses
-everything installed (Claude only when a key is set). Add `--json` to any
-query for the full answer structure.
+Three modes, each building on the one before. No flags means Dev mode; each
+flag turns on one layer. `--dense` adds semantic search and `--llm claude`
+switches answers to Claude. Nothing switches on just because it's installed
+or a key is set. Add `--json` to any query for the full answer structure.
 
 ### 1. Dev
 
@@ -27,8 +25,8 @@ reproducible baseline.
 ```bash
 pip install -e ".[dev]"
 python -m pytest
-python -m attest "What is the overdraft fee?" --no-dense --llm extractive
-python eval/run_eval.py --no-dense
+python -m attest "What is the overdraft fee?"
+python eval/run_eval.py
 ```
 
 ### 2. Dense
@@ -38,8 +36,8 @@ Adds semantic search, which matches meaning rather than exact words
 
 ```bash
 pip install -e ".[dev,dense]"
-python -m attest "What is the overdraft fee?" --llm extractive
-python eval/run_eval.py
+python -m attest "What is the overdraft fee?" --dense
+python eval/run_eval.py --dense
 ```
 
 ### 3. Claude
@@ -51,8 +49,8 @@ A Claude.ai subscription (Pro, Max, Team) does not include API usage.
 
 ```bash
 pip install -e ".[dev,dense,claude]"
-python -m attest "What is the overdraft fee?" --llm claude
-python eval/run_eval.py --llm claude
+python -m attest "What is the overdraft fee?" --dense --llm claude
+python eval/run_eval.py --dense --llm claude
 ```
 
 Set these first. They last only for the current terminal window:
@@ -85,7 +83,7 @@ the **withheld draft** instead, so you can see what the generator produced
 before validation stopped it.
 
 ```bash
-python eval/run_eval.py --llm claude -v
+python eval/run_eval.py --dense --llm claude -v
 ```
 
 `-v` exists only on `eval/run_eval.py`. For a single question, use
@@ -114,7 +112,7 @@ redact PII -> account-question gate -> hybrid retrieval -> coverage gate
 
 | Decision | Choice | Why |
 |---|---|---|
-| Index | BM25 + dense embeddings (bge-small via fastembed), fused with reciprocal rank fusion | Support questions mix exact terms ("Premier", "ACH") with paraphrase ("my payment bounced"). Dense is optional: without the model, it runs BM25-only and says so. |
+| Index | BM25 + dense embeddings (bge-small via fastembed), fused with reciprocal rank fusion | Support questions mix exact terms ("Premier", "ACH") with paraphrase ("my payment bounced"). Dense is opt-in (`--dense`) so the default needs no downloads; if requested and unavailable, it fails loudly instead of silently running BM25-only. |
 | Chunking | By document structure: markdown/HTML headings, one CSV row per chunk | Sections in a policy are already the unit an agent wants cited. |
 | Tables | Fee rows are cited as the raw CSV line but indexed as a sentence with column names. Markdown tables are rendered the same way. | A bare row (`WIO-PRM,...,$45.00,...`) retrieves badly; the rendered row matches queries; the raw row is what an agent should see. |
 | Versions | Older versions of a policy (same `policy_id`, earlier effective date) are detected and excluded | Real KBs keep old files around; the 2025 overdraft policy still says $35. |
@@ -144,29 +142,70 @@ rather than adversarial ones:
 - Out-of-scope questions that share words with in-scope content ("Premier savings APY")
 - Account-specific questions, one containing an account number
 
-TODO: how the dataset was generated and what I changed by hand.
+**How it was generated.** An AI assistant drafted the documents and queries
+from a spec of the traps above, then I reviewed every file and query. Choices
+made along the way:
+
+- Traps were limited to ones that occur on their own in real knowledge bases. A planted prompt injection was proposed and dropped as contrived.
+- Fees live in the CSV, with policies pointing to it, the way a policy team and a pricing team actually split ownership. That split is what made pointer-following necessary.
+- q08 (mortgage rates) was changed from "should refuse" to "should route to the Partner Products line" after the system found the routing rule in the escalation guide. A routed answer is more useful to an agent than a refusal.
+- Expected facts are checked by normalized substring match, which is crude but deterministic. With 19 queries, every answer can be read by hand.
 
 ## Results
 
-See `eval/report.md`. Current run: BM25-only, extractive generator, **13/19** pass.
-Retrieval finds an expected source for 16/16 answerable queries, and the stale
-$35 overdraft fee never appears.
+Full output in `eval/report.md` (regenerated on each run).
 
-The failures are where the next work is:
+| Mode | Retrieval | Generator | Pass |
+|---|---|---|---|
+| Dev | BM25 | extractive | 13/19 |
+| Dense | BM25 + embeddings | extractive | 14/19 |
+| Claude | BM25 + embeddings | Claude | 16/19 |
 
-- **Vocabulary gaps** (q07 "bounced", q19 "abroad"): BM25 can't bridge them. This is the case for the dense half of the hybrid.
-- **Synthesis** (q04, q05, q16): the extractive generator can quote but can't compare or ask a clarifying question.
-- **Confidence miscalibration**: q05 and q16 are wrong but marked *high*. Confidence measures whether the right sources were found, not whether the answer used them well.
-- **Partial-match out of scope** (q18): "Premier savings APY" matches a FAQ line about savings accounts. It answers at *low* confidence rather than refusing.
+In every mode, retrieval finds an expected source for the answerable queries,
+and the stale $35 overdraft fee never appears in an answer. Claude scores vary
+slightly run to run; the figure above is one run after the token-limit fix.
+
+What the modes show:
+
+- **Dense helps where words differ.** It fixes the ambiguous wire question (q05) and correctly refuses "Premier savings APY" (q18), which BM25 answered at low confidence from a FAQ line about savings accounts.
+- **Dense also improves calibration.** In BM25 mode, two wrong answers were marked *high*. In hybrid mode, none were.
+- **Claude helps where answers need synthesis.** It compares business and personal wire fees (q16) and states the dispute deadline that the extractive generator retrieved but didn't quote.
+- **Claude's 3 misses happen before Claude runs.** q07 ("bounced"), q19 ("abroad") and q08 (mortgage) are refused by the coverage gate. For q07 and q19, dense retrieval found the right document; see "With more time".
 
 ## What I didn't build, and why
 
-TODO
+The brief is deliberately larger than an hour. I spent the time on grounding,
+refusal and auditability, because a wrong fee quoted to a customer is the
+failure that costs money, and skipped the following:
+
+- **Cross-encoder reranker.** It would sharpen the top results, but retrieval already finds the right source for the answerable queries; the failures are downstream of it.
+- **Query rewriting.** It overlaps with what dense retrieval already does for vocabulary gaps, and adds an LLM call to every query.
+- **Multi-turn conversation.** Agents ask one question at a time against a knowledge base; conversation state is a product decision, not a retrieval one.
+- **Index persistence.** The corpus builds in under a second. Persistence matters at production size, not here.
+- **LLM-as-judge evaluation.** With 19 queries, every answer can be read. A judge would add a second model's errors to the first's.
+- **HTTP endpoint (FastAPI).** Cut in favor of the audit log and PII redaction. The deliverable is the `Attest.ask()` function and a CLI; an endpoint is a thin wrapper around it.
+- **UI and auth.** Out of scope per the brief.
 
 ## With more time
 
-TODO
+In priority order, each grounded in an eval failure:
+
+1. **Make the coverage gate trust semantic matches.** The gate measures word overlap between the query and the results. On q07 and q19, dense retrieval finds the right document, then the gate refuses because the words differ. Loosening the gate trades hallucination safety for recall, so I'd accept a strong embedding similarity as a second way to pass, and measure the false-answer rate on out-of-scope queries before shipping it.
+2. **Ask clarifying questions.** "How much is a wire?" has eight answers by direction, destination and tier. Listing them is a workaround; asking which one is the right behavior for an agent tool.
+3. **Separate retrieval confidence from answer confidence.** Confidence currently reflects whether good sources were found, not whether the answer used them well. A per-claim check (does each sentence's cited passage entail it) would close that gap.
+4. **Fix two noisy signals.** The "superseded version excluded" notice fires when an old version appears anywhere in the candidate pool, even on unrelated questions. And correctly excluding a stale FAQ lowers confidence, which penalizes the system for doing the right thing.
+5. **Replace the account-question pattern list with a classifier.** The regex list is reviewable but brittle; it misses phrasings it hasn't seen.
 
 ## How I used AI tools
 
-TODO
+Claude generated most of the code and the synthetic dataset under my
+direction. My work was deciding what to build, reviewing the output, and
+running the system to find where it broke.
+
+- **Conventions before code.** I had `CLAUDE.md` written first: the invariants the system must keep (exact citation spans, no ungrounded numbers, no raw queries in logs), each enforced by a test.
+- **Dataset.** AI-drafted from a spec of realistic traps, then reviewed by hand; the changes I made are listed under Dataset.
+- **Bugs found by running it, not by reading it.**
+  - A "prefer policy over FAQ" weight was implemented as a score multiplier. Because RRF scores are tightly compressed, it buried a FAQ that was clearly the best match. Rebuilt as a small rank penalty.
+  - Using the CLI showed the same fee row cited twice. A failing test was written first, then the fix.
+  - The Claude eval first scored 12/19. Reading the withheld drafts with `-v` showed answers cut off mid-list: the token limit was too low. Raising it, and flagging truncation as its own failure, took Claude to 16/19.
+- **Where I overrode the AI.** It proposed a venv-heavy setup, a contrived prompt-injection trap, and at one point described the Claude failures as "Claude dropping citations". The drafts showed truncation instead.
