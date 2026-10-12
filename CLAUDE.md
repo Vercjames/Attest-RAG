@@ -31,10 +31,10 @@ whole flow in ~150 lines.
     pip install -e ".[dev]"            # add ,dense and/or ,claude as needed
     python -m pytest
     python -m attest "What is the overdraft fee?"
-    python eval/run_eval.py            # writes eval/report.md
+    python eval/run_eval.py            # writes eval/report-dev.md (--dense / --claude for the others)
 
 ## When changing retrieval or generation
 
-Run the eval before and after and compare `eval/report.md`. If a change was
+Run the eval before and after and compare `eval/report-<mode>.md` with `git diff`. If a change was
 made to fix a specific eval query, say so in the commit message: the eval
 set is small enough to overfit by accident.

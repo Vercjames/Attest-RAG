@@ -57,11 +57,13 @@ def render(ans: Answer) -> str:
         return c("36", "[" + ",".join(str(numbers[i]) for i in ids if i in numbers) + "]")
 
     if ans.answer:
-        for line in ans.answer.strip().splitlines():
-            line = line.strip()
-            if not line:
-                continue
+        for line in _merge_same_source(ans.answer):
             bullet = line.startswith("- ")
+            if line.endswith(":") and not CITATION.search(line):
+                if out[-1]:
+                    out.append("")
+                out.append(c("1", f"  {line}"))
+                continue
             # wrap the plain text first, then color footnotes, so escapes don't skew widths
             plain = CITATION.sub(lambda m: "[" + ",".join(
                 str(numbers.get(i.strip(), "?")) for i in re.split(r"[,;]", m.group(1))) + "]", line)
@@ -71,7 +73,7 @@ def render(ans: Answer) -> str:
 
     by_id = {x.chunk_id: x for x in ans.citations}
     if numbers:
-        out.append(c("1", "  Sources"))
+        out.append(c("1", "  Sources") + c("2", "  (the [n] after each line points here)"))
         for cid, n in numbers.items():
             if cid in by_id:
                 out += _source(by_id[cid], c("36", f"[{n}]"), c, wrap)
@@ -99,6 +101,26 @@ def render(ans: Answer) -> str:
     for n in notices:
         out += [c("2", line) for line in wrap(n, "  note: ", "        ")]
     return "\n".join(out).rstrip() + "\n"
+
+
+def _merge_same_source(answer: str) -> list[str]:
+    """Join consecutive prose sentences that cite the same source, so the
+    marker appears once per paragraph instead of once per sentence."""
+    merged: list[str] = []
+    prev_cite = None
+    for line in (l.strip() for l in answer.strip().splitlines()):
+        if not line:
+            prev_cite = None
+            continue
+        cites = CITATION.findall(line)
+        prose = not line.startswith("- ") and len(cites) == 1 and line.endswith(f"[{cites[0]}]")
+        if prose and merged and prev_cite == cites[0]:
+            body = line[: -len(f"[{cites[0]}]")].rstrip()
+            merged[-1] = merged[-1][: -len(f"[{cites[0]}]")].rstrip() + " " + body + f" [{cites[0]}]"
+        else:
+            merged.append(line)
+        prev_cite = cites[0] if prose else None
+    return merged
 
 
 def _source(x: Citation, marker: str, c, wrap) -> list[str]:

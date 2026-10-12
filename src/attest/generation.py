@@ -3,7 +3,7 @@
 Two implementations behind one interface:
   ExtractiveGenerator  default; no key needed. Picks the best-matching
                        sentences and fee rows and cites each one.
-  ClaudeGenerator      used when ANTHROPIC_API_KEY is set (or --llm claude).
+  ClaudeGenerator      used with --claude (needs ANTHROPIC_API_KEY).
 
 Both return a Draft whose citations are [chunk_id] markers inline in the
 text. The pipeline validates the draft the same way regardless of source,
@@ -111,8 +111,20 @@ class ExtractiveGenerator:
         fees = [x for x in keep if x[3].doc.doc_type == "fee_schedule"]
 
         lines = [f"{u} [{c.chunk_id}]" for _, _, u, c in prose]
-        lines += [f"- {u} [{c.chunk_id}]" for _, _, u, c in fees]
+        # Group fee rows under their fee name so "Overdraft fee" isn't repeated per tier.
+        groups: dict[str, list[Chunk]] = {}
+        for _, _, _, c in fees:
+            groups.setdefault(c.heading, []).append(c)
+        for name, rows in groups.items():
+            lines.append(f"{name}:")
+            lines += [f"- {_fee_tier_line(c)} [{c.chunk_id}]" for c in rows]
         return Draft("\n".join(lines))
+
+
+def _fee_tier_line(c: Chunk) -> str:
+    row = c.doc.meta["rows"][c.chunk_id.split("#", 1)[1]]
+    line = f"{row['account_tier']}: {row['amount']} {row['unit']}"
+    return line + (f" ({row['notes']})" if row.get("notes") else "")
 
 
 def _fee_line(c: Chunk) -> str:

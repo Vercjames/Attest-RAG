@@ -1,6 +1,6 @@
 # Eval report
 
-Generated 2026-10-12 · retrieval: **bm25** · generator: **extractive** · 19 queries
+Retrieval: **bm25** · generator: **extractive** · 19 queries
 
 ## Summary
 
@@ -45,6 +45,8 @@ Generated 2026-10-12 · retrieval: **bm25** · generator: **extractive** · 19 q
 - trap: FAQ says "about 10 days", policy says provisional credit within 10 business days and investigation up to 45/90 days
 - status: answered (answered), confidence medium
 - cited: card-disputes-policy#1, lost-stolen-card-policy#5, card-disputes-policy#3
+- note: Excluded faq-disputes#2: FAQ last reviewed 2025-02-14, before the current policy took effect
+- note: Excluded faq-disputes#1: FAQ last reviewed 2025-02-14, before the current policy took effect
 
 ```
 Disputes can be filed in online banking, in the mobile app, or by calling Card Services. [card-disputes-policy#1]
@@ -60,10 +62,12 @@ For transactions initiated outside the United States, point-of-sale transactions
 
 ```
 Sign in to online banking, choose Transfers, then Wire Transfer. [faq-wires#1]
-- Incoming international wire, All accounts: $15.00 per transfer [fees#WII-ALL]
-- Outgoing international wire, Business Checking: $50.00 per transfer [fees#WIO-BIZ]
-- Outgoing international wire, Essential, Plus Checking: $45.00 per transfer [fees#WIO-PER]
-- Outgoing international wire, Premier Checking: $45.00 per transfer (First 2 per statement cycle waived) [fees#WIO-PRM]
+Incoming international wire:
+- All accounts: $15.00 per transfer [fees#WII-ALL]
+Outgoing international wire:
+- Business Checking: $50.00 per transfer [fees#WIO-BIZ]
+- Essential, Plus Checking: $45.00 per transfer [fees#WIO-PER]
+- Premier Checking: $45.00 per transfer (First 2 per statement cycle waived) [fees#WIO-PRM]
 ```
 
 ### q07: My payment bounced. Am I getting charged for that?
@@ -80,14 +84,15 @@ The knowledge base doesn't appear to cover this. Closest passages are listed; es
 
 - trap: comparison across table rows plus a policy statement
 - status: answered (answered), confidence high
-- cited: wire-transfers-policy#1, faq-wires#2, business-checking-overview#2, fees#WDI-ALL, fees#WDI-ALL
+- cited: wire-transfers-policy#1, faq-wires#2, business-checking-overview#2, fees#WDI-ALL
+- note: Superseded version excluded: overdraft-policy-2025
 
 ```
 Business fees for wires, overdrafts, and returned items differ from personal checking fees. [business-checking-overview#2]
 Outgoing domestic wire requests received by 4:00 p.m. ET on a business day are processed the same business day. [wire-transfers-policy#1]
 Domestic wires submitted before 4:00 p.m. ET on a business day usually arrive the same day. [faq-wires#2]
-- Incoming domestic wire, All personal accounts: $15.00 per transfer (Waived for Premier Checking) [fees#WDI-ALL]
-- Incoming domestic wire, All personal accounts: $15.00 per transfer (Waived for Premier Checking) [fees#WDI-ALL]
+Incoming domestic wire:
+- All personal accounts: $15.00 per transfer (Waived for Premier Checking) [fees#WDI-ALL]
 ```
 
 ### q18: What is the APY on a Premier savings account?
@@ -95,6 +100,7 @@ Domestic wires submitted before 4:00 p.m. ET on a business day usually arrive th
 - trap: plausible banking question, shares "Premier" with lots of content, but savings rates are not in the corpus
 - status: answered (answered), confidence low
 - cited: faq-overdraft#2
+- note: Excluded faq-account-opening#2: FAQ last reviewed 2025-03-05, before the current policy took effect
 
 ```
 Set up low-balance alerts in the mobile app, or link a savings account for overdraft protection transfers. [faq-overdraft#2]

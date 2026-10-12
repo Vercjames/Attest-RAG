@@ -1,8 +1,8 @@
-"""Run the query set and write eval/report.md.
+"""Run the query set and write eval/report-<mode>.md (dev, dense or claude).
 
     python eval/run_eval.py                         # dev: BM25 + extractive
     python eval/run_eval.py --dense                 # + semantic search
-    python eval/run_eval.py --dense --llm claude    # + Claude (needs ANTHROPIC_API_KEY)
+    python eval/run_eval.py --claude                # + Claude (needs ANTHROPIC_API_KEY)
 
 Metrics are deliberately simple and deterministic:
   retrieval@5    an expected doc is in the top 5 retrieved (before gating)
@@ -18,7 +18,6 @@ import argparse
 import os
 import re
 import sys
-from datetime import date
 from pathlib import Path
 
 import yaml
@@ -119,7 +118,9 @@ def write_report(rows: list[dict], system: Attest, out: Path) -> None:
     answerable = [r for r in rows if not r["should_refuse"]]
     lines = [
         "# Eval report", "",
-        f"Generated {date.today()} · retrieval: **{mode}** · generator: **{gen}** · {len(rows)} queries", "",
+        # No timestamp: rerunning a mode gives an identical file, so git only
+        # shows a diff when results actually change.
+        f"Retrieval: **{mode}** · generator: **{gen}** · {len(rows)} queries", "",
         "## Summary", "",
         "| metric | result |", "|---|---|",
         f"| end-to-end pass | {pct([r['pass'] for r in rows])} |",
@@ -158,14 +159,16 @@ def write_report(rows: list[dict], system: Attest, out: Path) -> None:
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--llm", choices=["extractive", "claude"], default="extractive")
     ap.add_argument("--dense", action="store_true", help="add semantic search")
+    ap.add_argument("--claude", action="store_true", help="semantic search + Claude answers")
     ap.add_argument("--verbose", "-v", action="store_true",
                     help="also print the answer (or withheld draft) for failing queries")
-    ap.add_argument("--out", default=str(ROOT / "eval" / "report.md"))
+    ap.add_argument("--out", help="report path (default: eval/report-<mode>.md)")
     args = ap.parse_args()
-    if args.dense:
+    if args.dense or args.claude:
         os.environ["ATTEST_DENSE"] = "1"
-    rows = run(args.llm, Path(args.out), args.verbose)
+    mode = "claude" if args.claude else "dense" if args.dense else "dev"
+    out = Path(args.out) if args.out else ROOT / "eval" / f"report-{mode}.md"
+    rows = run("claude" if args.claude else "extractive", out, args.verbose)
     passed = sum(r["pass"] for r in rows)
-    print(f"{passed}/{len(rows)} passed -> {args.out}")
+    print(f"{passed}/{len(rows)} passed -> {out.relative_to(ROOT) if out.is_relative_to(ROOT) else out}")
