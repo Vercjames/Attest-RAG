@@ -1,0 +1,37 @@
+fee_id,fee_name,category,account_tier,amount,unit,notes,effective_date
+OD-ESS,Overdraft fee,Overdraft,Essential Checking,$15.00,per item,"Max 2 per business day; not charged if overdrawn by $50.00 or less",2026-03-01
+OD-PLS,Overdraft fee,Overdraft,Plus Checking,$15.00,per item,"Max 2 per business day; not charged if overdrawn by $50.00 or less",2026-03-01
+OD-PRM,Overdraft fee,Overdraft,Premier Checking,$0.00,per item,Waived,2026-03-01
+OD-BIZ,Overdraft fee,Overdraft,Business Checking,$25.00,per item,Max 4 per business day,2026-03-01
+RI-PER,Returned item fee (NSF),Returned Items,"Essential, Plus Checking",$15.00,per item,"Not charged on re-presentment by same merchant within 30 days",2025-10-01
+RI-PRM,Returned item fee (NSF),Returned Items,Premier Checking,$0.00,per item,Waived,2025-10-01
+RI-BIZ,Returned item fee (NSF),Returned Items,Business Checking,$25.00,per item,,2025-10-01
+DIR-ALL,Deposited item returned,Returned Items,All accounts,$12.00,per item,,2025-10-01
+WDO-ESS,Outgoing domestic wire,Wires,Essential Checking,$30.00,per transfer,,2026-01-15
+WDO-PLS,Outgoing domestic wire,Wires,Plus Checking,$25.00,per transfer,,2026-01-15
+WDO-PRM,Outgoing domestic wire,Wires,Premier Checking,$0.00,per transfer,Waived,2026-01-15
+WDO-BIZ,Outgoing domestic wire,Wires,Business Checking,$25.00,per transfer,"$20.00 if initiated in Business Online Banking",2026-01-15
+WIO-PER,Outgoing international wire,Wires,"Essential, Plus Checking",$45.00,per transfer,,2026-01-15
+WIO-PRM,Outgoing international wire,Wires,Premier Checking,$45.00,per transfer,First 2 per statement cycle waived,2026-01-15
+WIO-BIZ,Outgoing international wire,Wires,Business Checking,$50.00,per transfer,,2026-01-15
+WDI-ALL,Incoming domestic wire,Wires,All personal accounts,$15.00,per transfer,Waived for Premier Checking,2026-01-15
+WII-ALL,Incoming international wire,Wires,All accounts,$15.00,per transfer,,2026-01-15
+FX-PER,Foreign transaction fee,Cards,"Essential, Plus Checking",3%,of transaction amount,Applies to purchases and ATM withdrawals,2025-05-01
+FX-PRM,Foreign transaction fee,Cards,Premier Checking,0%,of transaction amount,Waived,2025-05-01
+CRD-STD,Replacement card - standard delivery,Cards,All accounts,$0.00,per card,5-7 business days,2025-05-01
+CRD-EXP,Replacement card - expedited delivery,Cards,"Essential, Plus, Business Checking",$25.00,per card,"2 business days domestic; 3-5 business days international",2025-05-01
+CRD-EXP-PRM,Replacement card - expedited delivery,Cards,Premier Checking,$0.00,per card,Waived,2025-05-01
+ATM-OON,Out-of-network ATM withdrawal,Cards,"Essential, Plus Checking",$3.00,per withdrawal,ATM owner may also charge a fee,2025-05-01
+ATM-OON-PRM,Out-of-network ATM withdrawal,Cards,Premier Checking,$0.00,per withdrawal,Other banks' ATM fees refunded up to $20.00 per statement cycle,2025-05-01
+
+MM-ESS,Monthly maintenance fee,Maintenance,Essential Checking,$5.00,per month,Waived with $500 minimum daily balance or $250 in monthly direct deposits,2025-01-01
+MM-PLS,Monthly maintenance fee,Maintenance,Plus Checking,$12.00,per month,Waived with $5000 combined balances,2025-01-01
+MM-PRM,Monthly maintenance fee,Maintenance,Premier Checking,$25.00,per month,Waived with $25000 combined balances,2025-01-01
+MM-BIZ,Monthly maintenance fee,Maintenance,Business Checking,$15.00,per month,Waived with $2500 average monthly balance,2025-01-01
+PS-PER,Paper statement fee,Statements,"Essential, Plus, Business Checking",$3.00,per month,Not charged for e-statements,2025-01-01
+PS-PRM,Paper statement fee,Statements,Premier Checking,$0.00,per month,Waived,2025-01-01
+SP-ALL,Stop payment,Other,All accounts,$30.00,per request,Waived for Premier Checking,2025-01-01
+CC-ALL,Cashier's check,Other,All accounts,$10.00,per check,,2025-01-01
+EC-ALL,Early account closure,Other,All accounts,$25.00,per account,Applies only if closed within 90 days of opening,2025-01-01
+DOR-ALL,Dormant account fee,Other,All accounts,$5.00,per month,"Begins after 12 months without customer-initiated activity",2025-01-01
+# Fees subject to change. Export generated 2026-03-02 from FeeMaster. Contact Deposit Products with questions.

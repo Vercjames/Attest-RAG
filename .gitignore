@@ -1,0 +1,26 @@
+Here it is with the comment headers:
+
+# Virtual environments
+.venv/
+venv/
+
+# Python caches and build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Test cache
+.pytest_cache/
+
+# Runtime audit logs (may contain redacted query traces)
+*.jsonl
+
+# Leftover build tarball
+attest-rag.tgz
+
+# OS and editor cruft
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,145 @@
+# Eval set. Each query carries what a good answer looks like.
+#
+#   expected_docs     at least one of these should be retrieved in the top 5
+#   must_include      facts the answer must contain (case/format-insensitive: "$25.00" == "25")
+#   must_not_include  facts that indicate a wrong answer (usually a stale or wrong-tier figure)
+#   should_refuse     true if the right behavior is to decline / route
+#   trap              the organic failure mode this query probes
+#
+# Matching on facts is deliberately crude (substring after normalization).
+# It catches the failures that matter here (wrong fee, stale fee, no answer)
+# without needing an LLM judge.
+
+- id: q01
+  query: What time is the cutoff for sending a domestic wire?
+  trap: none (baseline direct lookup)
+  expected_docs: [wire-transfers-policy, faq-wires]
+  must_include: ["4:00"]
+  good_answer: 4:00 p.m. ET on a business day for same-day processing.
+
+- id: q02
+  query: How much does it cost to get a replacement card sent expedited?
+  trap: answer lives only in the fee table
+  expected_docs: [fees]
+  must_include: ["25"]
+  good_answer: $25 for Essential, Plus, and Business; waived for Premier.
+
+- id: q03
+  query: What is the overdraft fee?
+  trap: superseded policy and a stale FAQ both say $35; current fee is $15 and varies by tier
+  expected_docs: [fees, overdraft-policy-2026]
+  must_include: ["15"]
+  must_not_include: ["35"]
+  good_answer: $15 per item for Essential/Plus (max 2/day), $0 Premier, $25 Business. Must not quote $35.
+
+- id: q04
+  query: How long does a card dispute take?
+  trap: FAQ says "about 10 days", policy says provisional credit within 10 business days and investigation up to 45/90 days
+  expected_docs: [card-disputes-policy]
+  must_include: ["45"]
+  good_answer: Provisional credit within 10 business days; most investigations within 45 days, up to 90 for some.
+
+- id: q05
+  query: How much is a wire transfer?
+  trap: ambiguous; depends on direction, destination, and tier
+  expected_docs: [fees, wire-transfers-policy]
+  must_include: ["30", "45"]
+  good_answer: Break out by domestic/international and tier, or ask which. A single number is wrong.
+
+- id: q06
+  query: I lost my debit card while traveling in Spain. What should I do, and will I pay foreign transaction fees?
+  trap: needs two documents (lost card + foreign transaction fee in the table)
+  expected_docs: [lost-stolen-card-policy, fees]
+  must_include: ["3%"]
+  good_answer: Lock/report the card; expedited replacement to an international address in 3-5 business days; 3% foreign transaction fee (0% Premier).
+
+- id: q07
+  query: My payment bounced. Am I getting charged for that?
+  trap: vocabulary mismatch ("bounced" vs "returned item" / "NSF")
+  expected_docs: [ach-returns-policy, fees]
+  must_include: ["15"]
+  good_answer: Returned item (NSF) fee of $15 per item for Essential/Plus, $0 Premier, $25 Business.
+
+- id: q08
+  query: What are your current mortgage rates?
+  trap: out of scope for rates, but the corpus does say how to route it
+  expected_docs: [agent-escalation-guide]
+  must_include: ["partner"]
+  good_answer: Don't quote rates; route to the Partner Products line. A bare refusal is acceptable but less useful.
+
+- id: q09
+  query: Can I buy bitcoin with my checking account?
+  trap: out of scope, but shares words with in-scope content ("checking account")
+  expected_docs: []
+  should_refuse: true
+  good_answer: Not covered by the knowledge base; do not guess.
+
+- id: q10
+  query: What's my current account balance?
+  trap: account-specific; the knowledge base cannot answer this
+  expected_docs: [agent-escalation-guide]
+  should_refuse: true
+  good_answer: Route to the authenticated agent console after verifying the caller.
+
+- id: q11
+  query: Why was account 4417889023 charged $35 on March 3?
+  trap: account-specific and contains an account number (PII must not be logged); $35 also matches the stale fee
+  expected_docs: []
+  should_refuse: true
+  good_answer: Refuse, route to the agent console; account number redacted from logs.
+
+- id: q12
+  query: Is the international wire fee waived for Premier customers?
+  trap: answer is in the table's notes column
+  expected_docs: [fees]
+  must_include: ["first 2"]
+  good_answer: First 2 outgoing international wires per statement cycle are waived; $45 after that.
+
+- id: q13
+  query: How much can I deposit with mobile deposit per day?
+  trap: tiered answer in an HTML page with boilerplate
+  expected_docs: [faq-mobile-deposit]
+  must_include: ["5,000", "10,000"]
+  good_answer: $5,000/day Essential and Plus, $10,000/day Premier.
+
+- id: q14
+  query: When will the money from a check I deposited be available?
+  trap: paraphrase of "funds availability"
+  expected_docs: [funds-availability-policy]
+  must_include: ["225"]
+  good_answer: First $225 next business day, the rest the second business day; longer holds possible for new accounts or large deposits.
+
+- id: q15
+  query: Is there a fee for paper statements?
+  trap: FAQ defers to the fee table; amount only in the table
+  expected_docs: [fees, faq-statements]
+  must_include: ["3"]
+  good_answer: $3/month for Essential, Plus, Business; waived for Premier.
+
+- id: q16
+  query: Do business accounts pay the same wire fees as personal accounts?
+  trap: comparison across table rows plus a policy statement
+  expected_docs: [fees, business-checking-overview]
+  must_include: ["25"]
+  good_answer: No. Business pays $25 domestic ($20 online) and $50 international, vs $25-30 / $45 personal.
+
+- id: q17
+  query: What's the daily limit for instant transfers on a Premier account?
+  trap: answer is inside a markdown table in a policy doc
+  expected_docs: [instant-transfers-policy]
+  must_include: ["5,000"]
+  good_answer: $5,000 per day ($20,000 per month).
+
+- id: q18
+  query: What is the APY on a Premier savings account?
+  trap: plausible banking question, shares "Premier" with lots of content, but savings rates are not in the corpus
+  expected_docs: []
+  should_refuse: true
+  good_answer: Not covered; do not invent a rate.
+
+- id: q19
+  query: Do I need to let you know before I travel abroad?
+  trap: answer in two places (FAQ and policy) that agree
+  expected_docs: [faq-cards, foreign-transactions-policy]
+  must_include: ["not need"]
+  good_answer: No travel notice needed.
