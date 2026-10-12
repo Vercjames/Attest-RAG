@@ -31,8 +31,8 @@ Three modes. No flag is the baseline; each flag adds a layer.
 | Mode | Install | Ask | Eval |
 |---|---|---|---|
 | Dev | `pip install -e ".[dev]"` | `python -m attest "What is the overdraft fee?"` | `python eval/run_eval.py` |
-| Dense | `pip install -e ".[dev,dense]"` | `... --dense` | `... --dense` |
-| Claude | `pip install -e ".[dev,dense,claude]"` | `... --claude` | `... --claude` |
+| Dense | `pip install -e ".[dev,dense]"` | `python -m attest "What is the overdraft fee?" --dense` | `python eval/run_eval.py --dense` |
+| Claude | `pip install -e ".[dev,dense,claude]"` | `python -m attest "What is the overdraft fee?" --claude` | `python eval/run_eval.py --claude` |
 
 - **Dev**: keyword search, extractive answers. No downloads, no key.
 - **Dense**: adds semantic search ("bounced" finds "returned item"). Downloads a ~70MB model on first run.
@@ -41,7 +41,7 @@ Three modes. No flag is the baseline; each flag adds a layer.
 ```bash
 python -m pytest                  # tests
 python eval/run_eval.py -v        # -v shows the answer, or the withheld draft, for each failure
-python -m attest "..." --json     # full answer structure
+python -m attest "What is the overdraft fee?" --json   # full answer structure
 ```
 
 ---
