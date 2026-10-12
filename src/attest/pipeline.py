@@ -67,6 +67,7 @@ class Answer:
     refusal_reason: str | None = None
     related: list[Citation] = field(default_factory=list)   # closest passages when not answered
     notices: list[str] = field(default_factory=list)
+    withheld: str | None = None        # draft that failed grounding; for debugging, never shown as an answer
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -141,7 +142,8 @@ class Attest:
         if not v.ok:
             # Don't show an answer we can't back up. Show the passages instead.
             ans = Answer(query, "unverified", None, [], conf, "failed_grounding",
-                         [Citation.of(c) for c in context[:3]], notices + v.problems())
+                         [Citation.of(c) for c in context[:3]], notices + v.problems(),
+                         withheld=draft.text)
         else:
             ans = Answer(query, "answered", draft.text, [Citation.of(c) for c in cited], conf,
                          related=[Citation.of(c) for c in stale], notices=notices)

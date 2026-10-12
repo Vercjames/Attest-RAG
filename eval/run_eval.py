@@ -41,9 +41,44 @@ def contains(answer: str, fact: str) -> bool:
     return f in a
 
 
-def run(llm: str, out: Path) -> list[dict]:
+GREEN, RED, DIM, RESET = "\033[32m", "\033[31m", "\033[2m", "\033[0m"
+
+
+def why(row: dict, q: dict) -> str:
+    """One-line reason a query failed, from the most specific check that failed."""
+    if not row["behavior_ok"]:
+        if row["should_refuse"]:
+            return "answered, but should have refused"
+        return row["problem"] or row["reason"] or "refused"
+    if not row["no_wrong_fact"]:
+        bad = [f for f in q.get("must_not_include", []) if contains(row["answer"], f)]
+        return f"contains wrong/stale fact: {bad}"
+    missing = [f for f in q.get("must_include", []) if not contains(row["answer"], f)]
+    return f"missing required fact: {missing}"
+
+
+def print_row(row: dict, verbose: bool, color: bool) -> None:
+    def c(code: str, text: str) -> str:
+        return f"{code}{text}{RESET}" if color else text
+    verdict = c(GREEN, "PASS") if row["pass"] else c(RED, "FAIL")
+    detail = f"conf={row['confidence']}" if row["pass"] else f"({row['why']})"
+    print(f"  {row['id']}  {verdict}  {row['status']:<10}  {detail}")
+    if verbose and not row["pass"]:
+        body = row["answer"] or row["withheld"] or "(no answer)"
+        label = "withheld draft" if row["withheld"] else "answer"
+        print(c(DIM, f"        {row['query']}"))
+        print(c(DIM, f"        {label}:"))
+        for line in body.splitlines():
+            print(c(DIM, f"          {line}"))
+
+
+def run(llm: str, out: Path, verbose: bool = False) -> list[dict]:
     queries = yaml.safe_load((ROOT / "data" / "queries.yaml").read_text(encoding="utf-8"))
     system = Attest.from_corpus(llm=llm, audit_log=None)
+    color = sys.stdout.isatty() and not os.getenv("NO_COLOR")
+    if color and os.name == "nt":
+        os.system("")   # enables ANSI escape handling in the Windows console
+    print(f"retrieval: {system.retriever.mode} · generator: {system.generator.name}")
     rows = []
     for q in queries:
         ans = system.ask(q["query"])
@@ -61,9 +96,13 @@ def run(llm: str, out: Path) -> list[dict]:
             "no_wrong_fact": not any(contains(text, f) for f in q.get("must_not_include", [])),
             "behavior_ok": refused == bool(q.get("should_refuse")),
             "answer": text, "cited": [c.chunk_id for c in ans.citations],
-            "notices": ans.notices,
+            "notices": ans.notices, "withheld": ans.withheld,
+            # the grounding problem, if any, is the last notice on an unverified answer
+            "problem": ans.notices[-1] if ans.status == "unverified" and ans.notices else None,
         }
         row["pass"] = row["behavior_ok"] and row["no_wrong_fact"] and row["facts_ok"] is not False
+        row["why"] = "" if row["pass"] else why(row, q)
+        print_row(row, verbose, color)
         rows.append(row)
     write_report(rows, system, out)
     return rows
@@ -111,8 +150,9 @@ def write_report(rows: list[dict], system: Attest, out: Path) -> None:
         lines += [f"### {r['id']}: {r['query']}", "",
                   f"- trap: {r['trap']}",
                   f"- status: {r['status']} ({r['reason'] or 'answered'}), confidence {r['confidence']}",
-                  f"- cited: {', '.join(r['cited']) or 'none'}", "",
-                  "```", r["answer"] or "(no answer)", "```", ""]
+                  f"- cited: {', '.join(r['cited']) or 'none'}",
+                  *[f"- note: {n}" for n in r["notices"]], "",
+                  "```", r["answer"] or r["withheld"] or "(no answer)", "```", ""]
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -120,10 +160,12 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--llm", choices=["extractive", "claude", "auto"], default="extractive")
     ap.add_argument("--no-dense", action="store_true")
+    ap.add_argument("--verbose", "-v", action="store_true",
+                    help="also print the answer (or withheld draft) for failing queries")
     ap.add_argument("--out", default=str(ROOT / "eval" / "report.md"))
     args = ap.parse_args()
     if args.no_dense:
         os.environ["ATTEST_DENSE"] = "0"
-    rows = run(args.llm, Path(args.out))
+    rows = run(args.llm, Path(args.out), args.verbose)
     passed = sum(r["pass"] for r in rows)
     print(f"{passed}/{len(rows)} passed -> {args.out}")

@@ -23,6 +23,14 @@ def test_number_in_an_uncited_passage_does_not_count(chunks):
     assert validate(Draft("International is $45. [fees#WDO-PLS]"), ctx).ungrounded_numbers == ["45"]
 
 
+def test_grouped_citations_are_understood(chunks):
+    # LLMs write [a, b] even when asked for [a] [b]; numbers from either count.
+    ctx = _ctx(chunks, "fees#WDO-PLS", "fees#WIO-PER")
+    d = Draft("Domestic is $25 and international is $45. [fees#WDO-PLS, fees#WIO-PER]")
+    assert d.cited_ids == ["fees#WDO-PLS", "fees#WIO-PER"]
+    assert validate(d, ctx).ok
+
+
 def test_citations_must_be_to_retrieved_passages(chunks):
     ctx = _ctx(chunks, "fees#WDO-PLS")
     v = validate(Draft("Plus pays $25. [fees#WDO-PLS] [made-up#1]"), ctx)

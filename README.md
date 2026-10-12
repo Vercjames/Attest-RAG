@@ -15,99 +15,62 @@ so answers favor exact figures with their source over fluent prose.
 
 ## Run it
 
-### Install
+Three modes, each building on the one before. Without flags, `attest` uses
+everything installed (Claude only when a key is set). Add `--json` to any
+query for the full answer structure.
 
-Pick one. Each builds on the one before.
+### 1. Dev
 
-**Core (no downloads, no API key)**
+BM25 retrieval and extractive answers. No downloads, no API key: the
+reproducible baseline.
 
 ```bash
 pip install -e ".[dev]"
+python -m pytest
+python -m attest "What is the overdraft fee?" --no-dense --llm extractive
+python eval/run_eval.py --no-dense
 ```
 
-Installs the retrieval pipeline and pytest. Retrieval runs BM25-only, and
-answers come from the built-in extractive generator. Everything works offline.
+### 2. Dense
 
-**With semantic search**
+Adds semantic search, which matches meaning rather than exact words
+("bounced" vs "returned item"). Downloads a ~70MB embedding model on first run.
 
 ```bash
 pip install -e ".[dev,dense]"
+python -m attest "What is the overdraft fee?" --llm extractive
+python eval/run_eval.py
 ```
 
-Adds the dense half of hybrid retrieval (bge-small via fastembed). It
-downloads a ~70MB embedding model on first run. This is what bridges
-vocabulary gaps like "bounced" vs "returned item".
+### 3. Claude
 
-**With Claude (everything)**
+Claude writes the answer from the same retrieved passages, and the answer
+passes the same grounding checks. Requires an
+[Anthropic Console](https://console.anthropic.com) account with **API credits**.
+A Claude.ai subscription (Pro, Max, Team) does not include API usage.
 
 ```bash
 pip install -e ".[dev,dense,claude]"
+python -m attest "What is the overdraft fee?" --llm claude
+python eval/run_eval.py --llm claude
 ```
 
-Adds the Anthropic client on top of the above. When `ANTHROPIC_API_KEY` is
-set, answers come from Claude instead of the extractive generator.
-
-### Use
-
-```bash
-python -m pytest                                # tests, < 1s
-python -m attest "What is the overdraft fee?"   # add --json for the full structure
-python eval/run_eval.py                         # writes eval/report.md
-```
-
-### Choosing a mode
-
-With all three extras installed, the default uses everything available:
-hybrid retrieval, plus Claude if `ANTHROPIC_API_KEY` is set. Use flags to
-run a specific mode, for example to compare them:
-
-| Mode | Retrieval | Answers from | Ask | Eval |
-|---|---|---|---|---|
-| Core (`dev`) | BM25 | extractive | `python -m attest "..." --no-dense --llm extractive` | `python eval/run_eval.py --no-dense` |
-| Semantic (`dense`) | BM25 + embeddings | extractive | `python -m attest "..." --llm extractive` | `python eval/run_eval.py` |
-| Claude (`claude`) | BM25 + embeddings | Claude | `python -m attest "..." --llm claude` | `python eval/run_eval.py --llm claude` |
-
-- **Core** needs no downloads or key. It's the reproducible baseline.
-- **Semantic** adds embeddings, which match meaning rather than exact words ("bounced" vs "returned item").
-- **Claude** writes the answer from the same retrieved passages and passes the same grounding checks.
-
-### Claude setup
-
-Claude mode calls the Anthropic API, which needs an
-[Anthropic Console](https://console.anthropic.com) account with **API credits**.
-A Claude.ai subscription (Pro, Max, Team) does not include API usage. Create a
-key under **API keys** in the Console, then set two environment variables:
+Set these first. They last only for the current terminal window:
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | yes | Your Console API key |
-| `ATTEST_MODEL` | no | Model to use (default `claude-sonnet-5-5`) |
+| `ANTHROPIC_API_KEY` | yes | Console API key |
+| `ATTEST_MODEL` | no | Model (default `claude-sonnet-5-5`) |
 
 ```bash
-# macOS / Linux
-export ANTHROPIC_API_KEY="sk-ant-..."
-export ATTEST_MODEL="claude-sonnet-5-5"      # optional
-
-# Windows PowerShell
-$env:ANTHROPIC_API_KEY = "sk-ant-..."
-$env:ATTEST_MODEL = "claude-sonnet-5-5"      # optional
+export ANTHROPIC_API_KEY="sk-ant-..."     # macOS / Linux;  check: echo $ANTHROPIC_API_KEY
+$env:ANTHROPIC_API_KEY = "sk-ant-..."     # PowerShell;     check: echo $env:ANTHROPIC_API_KEY
 ```
 
-These last only for the current terminal window. Check they're set before running:
-
-```bash
-echo $ANTHROPIC_API_KEY                      # macOS / Linux
-echo $env:ANTHROPIC_API_KEY                  # Windows PowerShell
-```
-
-Then run with `--llm claude`. That flag fails loudly instead of silently
-falling back to the extractive generator. API problems print as one line,
-`Claude API error (...)`. The usual causes are no credits on the account, an
+`--llm claude` fails loudly rather than falling back. API problems print as
+one line, `Claude API error (...)`. The usual causes are no credits, an
 invalid key, or a model the account can't access. The prompt is in
 `src/attest/generation.py`.
-
-The eval defaults to the extractive generator so its results are
-reproducible. Pass `--llm claude` to score Claude.
 
 ## What it returns
 

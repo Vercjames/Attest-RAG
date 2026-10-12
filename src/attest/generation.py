@@ -20,7 +20,10 @@ from .chunking import Chunk, render_tables
 from .retrieval import tokenize
 
 ABSTAIN = "INSUFFICIENT_CONTEXT"
-CITATION = re.compile(r"\[([\w.-]+#[\w.-]+)\]")
+# A citation bracket holds one or more chunk ids: [a#1] or [a#1, b#2] or [a#1; b#2].
+# LLMs group citations even when told not to, so accept both forms.
+_ID = r"[\w.-]+#[\w.-]+"
+CITATION = re.compile(rf"\[({_ID}(?:\s*[,;]\s*{_ID})*)\]")
 
 
 @dataclass
@@ -30,7 +33,8 @@ class Draft:
 
     @property
     def cited_ids(self) -> list[str]:
-        return list(dict.fromkeys(CITATION.findall(self.text)))
+        ids = (i.strip() for group in CITATION.findall(self.text) for i in re.split(r"[,;]", group))
+        return list(dict.fromkeys(ids))
 
 
 class Generator(Protocol):
