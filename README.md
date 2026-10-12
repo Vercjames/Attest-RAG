@@ -72,13 +72,15 @@ $env:ANTHROPIC_API_KEY = "sk-ant-api03-..."    # PowerShell
   ANSWERED   confidence: medium
   · outdated sources were excluded: faq-overdraft
 
-  • Overdraft fee, Premier Checking: $0.00 per item (Waived) [1]
-  • Overdraft fee, Business Checking: $25.00 per item (Max 4 per business day) [2]
-  • Overdraft fee, Essential Checking: $15.00 per item (Max 2 per business day) [3]
-  • Overdraft fee, Plus Checking: $15.00 per item (Max 2 per business day) [4]
+  Overdraft fee:
+  • Premier Checking: $0.00 per item (Waived) [1]
+  • Business Checking: $25.00 per item (Max 4 per business day) [2]
+  • Essential Checking: $15.00 per item (Max 2 per business day; ...) [3]
+  • Plus Checking: $15.00 per item (Max 2 per business day; ...) [4]
 
-  Sources
+  Sources  (the [n] after each line points here)
   [1] Fee and Rate Schedule > Overdraft fee  fees.csv:358-438
+      "OD-PRM,Overdraft fee,Overdraft,Premier Checking,$0.00,per item,Waived,2026-03-01"
   ...
 
   Excluded (outdated)
@@ -86,6 +88,9 @@ $env:ANTHROPIC_API_KEY = "sk-ant-api03-..."    # PowerShell
       "Our overdraft fee is $35 per item, with a maximum of 3 fees per day."
       FAQ last reviewed 2024-11-02, before the current policy took effect
 ```
+
+The `[n]` after each line is its source: `[1]` is the exact row in `fees.csv`
+that the Premier fee came from, with its character range.
 
 The old $35 fee is still sitting in the knowledge base. It never makes it into the answer.
 
